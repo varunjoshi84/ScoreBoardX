@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Update Match Scores - ScoreboardX</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <style>
+        /* --- Existing styles --- */
+        body {
+            background-color: #121212;
+            color: #fff;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+        }
+
+        .sidebar {
+            height: 100vh;
+            background-color: #1f1f1f;
+            padding-top: 2rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            border-right: 1px solid #333;
+            z-index: 100;
+        }
+
+        .sidebar h4 {
+            font-weight: bold;
+            color: #4dabf7;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .sidebar a {
+            color: #aaa;
+            text-decoration: none;
+            display: block;
+            padding: 1rem 2rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .sidebar a:hover,
+        .sidebar a.active {
+            background-color: #333;
+            color: #4dabf7;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 2rem;
+        }
+
+        .card {
+            background-color: #1f1f1f;
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            padding: 2rem;
+        }
+
+        #playerSelection,
+        #scoreUpdatePanel,
+        #tossSetupPanel {
+            /* Added tossSetupPanel */
+            margin-top: 20px;
+            border: 1px solid #333;
+            padding: 15px;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+        }
+
+        #scoreUpdatePanel button {
+            margin: 5px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label,
+        .form-check-label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ccc;
+        }
+
+        /* Added .form-check-label */
+        .hidden {
+            display: none;
+        }
+
+        #message,
+        #initialPlayerMessage,
+        #scoreUpdateMessage,
+        #tossSetupMessage {
+            /* Added tossSetupMessage */
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 20px;
+        }
+
+        #initialPlayerMessage,
+        #tossSetupMessage {
+            color: #ffc107;
+        }
+
+        /* Applied warning color */
+        #scoreUpdateMessage {
+            color: #28a745;
+        }
+
+        #message {
+            color: #dc3545;
+        }
+
+        #nonAdminContent {
+            color: #ffc107;
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 1.2rem;
+            display: none;
+        }
+
+        /* Styles for Toss Setup Radio Buttons */
+        .form-check-inline {
+            margin-right: 1rem;
+        }
+
+        .form-check-input:checked {
+            background-color: #4dabf7;
+            border-color: #4dabf7;
+        }
+
+        .form-check-input {
+            background-color: #444;
+            border-color: #555;
+        }
+
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                margin-bottom: 1rem;
+                border-right: none;
+                border-bottom: 1px solid #333;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <h4>Admin Panel</h4>
+        <a href="/admin/dashboard"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a>
+        <a href="/admin/matches" class="active"><i class="fas fa-futbol me-2"></i>Manage Matches</a>
+        <a href="/admin/users"><i class="fas fa-users me-2"></i>Users</a>
+        <a href="/admin/settings"><i class="fas fa-cog me-2"></i>Settings</a>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <h2 class="mb-4">Update Match Scores</h2>
+
+        <div class="card">
+            <h3 id="matchIdDisplay" class="mb-3 text-info border-bottom border-secondary pb-2">Loading Match ID...</h3>
+
+            <div id="tossSetupPanel" class="hidden">
+                <h3>Set Toss Information</h3>
+                <div class="form-group">
+                    <label>Toss Winner:</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="tossWinner" id="tossWinnerA" value="A"
+                            required>
+                        <label class="form-check-label" for="tossWinnerA" id="tossWinnerALabel">Team A</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="tossWinner" id="tossWinnerB" value="B"
+                            required>
+                        <label class="form-check-label" for="tossWinnerB" id="tossWinnerBLabel">Team B</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Decision (Batting First):</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="battingFirst" id="battingFirstA" value="A"
+                            required>
+                        <label class="form-check-label" for="battingFirstA" id="battingFirstALabel">Team A</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="battingFirst" id="battingFirstB" value="B"
+                            required>
+                        <label class="form-check-label" for="battingFirstB" id="battingFirstBLabel">Team B</label>
+                    </div>
+                </div>
+                <button class="btn btn-warning" onclick="saveTossInfo()">Save Toss Info</button>
+                <div id="tossSetupMessage"></div>
+            </div>
+
+            <div id="playerSelection" class="hidden">
+                <h3>Select Initial Players</h3>
+                <div class="form-group">
+                    <label for="striker">Striker:</label>
+                    <select id="striker" name="striker" class="form-select bg-dark text-white border-secondary"
+                        required></select>
+                </div>
+                <div class="form-group">
+                    <label for="nonStriker">Non-Striker:</label>
+                    <select id="nonStriker" name="nonStriker" class="form-select bg-dark text-white border-secondary"
+                        required></select>
+                </div>
+                <div class="form-group">
+                    <label for="bowler">Current Bowler:</label>
+                    <select id="bowler" name="bowler" class="form-select bg-dark text-white border-secondary"
+                        required></select>
+                </div>
+                <button class="btn btn-success" onclick="setInitialPlayers()">Set Initial Players</button>
+                <div id="initialPlayerMessage"></div>
+            </div>
+
+            <div id="scoreUpdatePanel" class="hidden">
+                <h3>Score Update Panel</h3>
+                <div class="row mb-3">
+                    <div class="col-md-4">Current Striker: <strong id="currentStriker" class="text-warning"></strong>
+                    </div>
+                    <div class="col-md-4">Current Non-Striker: <strong id="currentNonStriker"
+                            class="text-info"></strong></div>
+                    <div class="col-md-4">Current Bowler: <strong id="currentBowler" class="text-primary"></strong>
+                    </div>
+                </div>
+                <h4>Update Actions</h4>
+                <button class="btn btn-outline-light" onclick="updateScore(1)">1 Run</button>
+                <button class="btn btn-outline-light" onclick="updateScore(2)">2 Runs</button>
+                <button class="btn btn-outline-light" onclick="updateScore(3)">3 Runs</button>
+                <button class="btn btn-success" onclick="updateScore(4)"><i class="fas fa-dice-four me-1"></i>
+                    Four</button>
+                <button class="btn btn-primary" onclick="updateScore(6)"><i class="fas fa-meteor me-1"></i> Six</button>
+                <button class="btn btn-danger" onclick="recordWicket()"><i class="fas fa-sign-out-alt me-1"></i>
+                    Wicket</button>
+                <button class="btn btn-secondary" onclick="nextBall()">Dot Ball</button>
+                <button class="btn btn-info" onclick="wideBall()">Wide</button>
+                <button class="btn btn-warning text-dark" onclick="noBall()">No Ball</button>
+                <button class="btn btn-outline-info" onclick="changeStrike()"><i class="fas fa-exchange-alt me-1"></i>
+                    Change Strike</button>
+                <button class="btn btn-outline-warning" onclick="changeBowler()"><i class="fas fa-user-edit me-1"></i>
+                    Change Bowler</button>
+                <button class="btn btn-outline-warning" onclick="finishInning()">
+                    Finish Inning</button>
+                <div id="scoreUpdateMessage"></div>
+            </div>
+
+            <div id="message"></div>
+        </div>
+    </div>
+    <div class="main-content" id="nonAdminContent">
+        <div class="container mt-4">
+            <div class="card p-4 text-center">
+                <h2 class="text-danger">Access Denied</h2>
+                <p id="nonAdminMessage" class="text-warning">...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- Global Variable for Match ID & Team Names ---
+        let currentMatchId = null;
+        let teamAName = 'Team A'; // Default names
+        let teamBName = 'Team B';
+        const API_BASE_URL = 'http://localhost/SportsApp/api'; // Define base URL
+
+        // --- DOM Element References ---
+        const playerSelectionDiv = document.getElementById('playerSelection');
+        const scoreUpdatePanelDiv = document.getElementById('scoreUpdatePanel');
+        const tossSetupPanelDiv = document.getElementById('tossSetupPanel');
+        const strikerSelect = document.getElementById('striker');
+        const nonStrikerSelect = document.getElementById('nonStriker');
+        const bowlerSelect = document.getElementById('bowler');
+        const currentStrikerSpan = document.getElementById('currentStriker');
+        const currentNonStrikerSpan = document.getElementById('currentNonStriker');
+        const currentBowlerSpan = document.getElementById('currentBowler');
+        const messageDiv = document.getElementById('message');
+        const initialPlayerMessageDiv = document.getElementById('initialPlayerMessage');
+        const scoreUpdateMessageDiv = document.getElementById('scoreUpdateMessage');
+        const tossSetupMessageDiv = document.getElementById('tossSetupMessage');
+        const mainContent = document.getElementById('mainContent');
+        const nonAdminContent = document.getElementById('nonAdminContent');
+        const matchIdDisplay = document.getElementById('matchIdDisplay');
+        const tossWinnerALabel = document.getElementById('tossWinnerALabel');
+        const tossWinnerBLabel = document.getElementById('tossWinnerBLabel');
+        const battingFirstALabel = document.getElementById('battingFirstALabel');
+        const battingFirstBLabel = document.getElementById('battingFirstBLabel');
+
+
+        // --- Initialization Flow ---
+        document.addEventListener('DOMContentLoaded', checkAdminRoleAndInit);
+
+        async function checkAdminRoleAndInit() {
+            const userData = await fetchUserData();
+            if (!userData || userData.role !== 'admin') {
+                redirectToLoginOrHome(true);
+            } else {
+                mainContent.style.display = 'block';
+                nonAdminContent.style.display = 'none';
+                extractAndSetMatchId();
+                if (currentMatchId) {
+                    await fetchMatchDetails(currentMatchId);
+                    checkTossStatus();
+                }
+            }
+        }
+
+        function extractAndSetMatchId() {
+            try {
+                const pathname = window.location.pathname;
+                const pathParts = pathname.split('/');
+                if (pathParts.length >= 5 && pathParts[2] === 'matches' && pathParts[4] === 'score') {
+                    const potentialMatchId = pathParts[3];
+                    const matchId = parseInt(potentialMatchId, 10);
+                    if (!isNaN(matchId) && matchId > 0) {
+                        currentMatchId = matchId;
+                        matchIdDisplay.textContent = `Match ID: ${currentMatchId}`;
+                        matchIdDisplay.classList.replace('text-info', 'text-success');
+                        console.log(`Match ID extracted and stored: ${currentMatchId}`);
+                    } else { throw new Error(`Invalid Match ID found: "${potentialMatchId}"`); }
+                } else { throw new Error("URL path structure mismatch"); }
+            } catch (error) {
+                console.error("Error processing Match ID:", error.message);
+                currentMatchId = null;
+                matchIdDisplay.textContent = 'Error: Invalid Match URL';
+                matchIdDisplay.classList.replace('text-info', 'text-danger');
+                messageDiv.textContent = 'Cannot proceed without a valid Match ID in the URL.';
+                hideAllPanels();
+            }
+        }
+
+        async function fetchMatchDetails(matchId) {
+            console.log(`Fetching details for Match ID: ${matchId}`);
+            clearMessages();
+            // --- !! ADJUST THIS API ENDPOINT AS NEEDED !! ---
+            const detailsUrl = `${API_BASE_URL}/getmatch`; // Example API structure
+
+            try {
+                // Assuming your match details API doesn't require POST or token for simple GET
+                const response = await fetch(detailsUrl, {
+                    // --- Method is POST ---
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json' // Required header for JSON body
+                    },
+                    // --- Body contains match_id ---
+                    body: JSON.stringify({ match_id: matchId })
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
+                    throw new Error(`Failed to fetch match details: ${errorData.message || response.statusText}`);
+                }
+                const data = await response.json();
+                console.log(data);
+                if (data.status === 'success' && data.match) {
+                    teamAName = data.match.team_a || 'Team A';
+                    teamBName = data.match.team_b || 'Team B';
+                    console.log(`Team Names: A=${teamAName}, B=${teamBName}`);
+                    tossWinnerALabel.textContent = teamAName;
+                    tossWinnerBLabel.textContent = teamBName;
+                    battingFirstALabel.textContent = teamAName;
+                    battingFirstBLabel.textContent = teamBName;
+                } else {
+                    // Handle cases where API returns success but no match data
+                    if (data.status === 'success' && !data.match) {
+                        throw new Error(`Match details not found for ID ${matchId}`);
+                    } else {
+                        throw new Error(data.message || 'Invalid data format for match details');
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching match details:", error);
+                messageDiv.textContent = `Error fetching match details: ${error.message}. Using default team names.`;
+                tossWinnerALabel.textContent = teamAName;
+                tossWinnerBLabel.textContent = teamBName;
+                battingFirstALabel.textContent = teamAName;
+                battingFirstBLabel.textContent = teamBName;
+            }
+        }
+
+        async function checkTossStatus() {
+            if (!currentMatchId) return;
+            console.log(`Checking toss status for Match ID: ${currentMatchId}`);
+            hideAllPanels();
+            clearMessages();
+            const checkTossUrl = `${API_BASE_URL}/gettoss`;
+
+            try {
+                const response = await fetch(checkTossUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ match_id: currentMatchId }),
+                });
+
+                if (response.status === 404) {
+                    console.log('Toss info not found (404), showing setup panel.');
+                    tossSetupPanelDiv.classList.remove('hidden');
+                    return;
+                }
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
+                    throw new Error(`Failed to check toss status: ${errorData.message || response.statusText}`);
+                }
+                const data = await response.json();
+                if (data.status === 'success' && data.toss_info) { // Assuming gettoss returns toss_info object on success
+                    console.log('Toss info found, proceeding to check players.');
+                    checkCurrentPlayers();
+                } else {
+                    // Handle case where API returns success but no data, or explicit 'not set' status if API does that
+                    console.log('Toss info reported as not set or invalid, showing setup panel.');
+                    tossSetupPanelDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error("Error checking toss status:", error);
+                messageDiv.textContent = `Error checking toss status: ${error.message}`;
+                hideAllPanels();
+            }
+        }
+
+        async function saveTossInfo() {
+            if (!currentMatchId) { tossSetupMessageDiv.textContent = 'Error: Match ID is missing.'; return; }
+            const tossWinnerInput = document.querySelector('input[name="tossWinner"]:checked');
+            const battingFirstInput = document.querySelector('input[name="battingFirst"]:checked');
+            if (!tossWinnerInput || !battingFirstInput) { tossSetupMessageDiv.textContent = 'Please select both Toss Winner and Batting First team.'; return; }
+            const tossWinner = tossWinnerInput.value;
+            const battingFirst = battingFirstInput.value;
+            clearMessages();
+            tossSetupMessageDiv.textContent = 'Saving...';
+            console.log(`Saving toss info for Match ID: ${currentMatchId}, Winner: ${tossWinner}, Batting: ${battingFirst}`);
+            const setTossUrl = `${API_BASE_URL}/settoss`;
+            try {
+                const response = await fetch(setTossUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ match_id: currentMatchId, toss_winner: tossWinner, batting_first: battingFirst }),
+                });
+                const data = await response.json(); // Try to parse JSON regardless of status for error messages
+                if (!response.ok) { throw new Error(data.message || `HTTP ${response.status}`); }
+                if (data.status === 'success') {
+                    console.log('Toss info saved successfully.');
+                    tossSetupMessageDiv.textContent = '';
+                    hideAllPanels();
+                    checkCurrentPlayers(); // Proceed to player check/setup
+                } else { throw new Error(data.message || 'Failed to save toss information.'); }
+            } catch (error) {
+                console.error("Error saving toss info:", error);
+                tossSetupMessageDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        function hideAllPanels() {
+            tossSetupPanelDiv.classList.add('hidden');
+            playerSelectionDiv.classList.add('hidden');
+            scoreUpdatePanelDiv.classList.add('hidden');
+        }
+
+        function clearMessages() {
+            messageDiv.textContent = '';
+            initialPlayerMessageDiv.textContent = '';
+            scoreUpdateMessageDiv.textContent = '';
+            tossSetupMessageDiv.textContent = '';
+        }
+
+        // --- Authentication Functions ---
+        function getCookie(name) { const value = `; ${document.cookie}`; const parts = value.split(`; ${name}=`); if (parts.length === 2) return parts.pop().split(';').shift(); return null; }
+        async function fetchUserData() { const token = getCookie('token'); if (!token) { console.error('Token not found.'); redirectToLoginOrHome(); return null; } try { const response = await fetch(`${API_BASE_URL}/users/me`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: token }), }); if (!response.ok) { console.error(`Fetching user data failed: ${response.status}`); redirectToLoginOrHome(response.status === 401 || response.status === 403); return null; } const data = await response.json(); return data.User; } catch (error) { console.error('Error fetching user data:', error); redirectToLoginOrHome(); return null; } }
+        function redirectToLoginOrHome(showAccessDenied = false) { mainContent.style.display = 'none'; nonAdminContent.style.display = 'block'; document.getElementById('nonAdminMessage').textContent = showAccessDenied ? 'Admin privileges required. Redirecting...' : 'Authentication error. Redirecting...'; setTimeout(() => { window.location.href = "/"; }, 3000); }
+
+        // --- Core Player/Score Logic Functions ---
+        async function checkCurrentPlayers() {
+            const matchId = currentMatchId;
+            if (!matchId) { messageDiv.textContent = 'Error: Match ID missing.'; console.error("checkCurrentPlayers no ID."); hideAllPanels(); return; }
+            clearMessages();
+            hideAllPanels();
+            console.log(`Checking players for Match ID: ${matchId}`);
+            try {
+                const response = await fetch(`${API_BASE_URL}/getcurrentplayers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ match_id: matchId }), });
+                const data = await response.json(); // Parse JSON first
+
+                if (response.ok && data.status === 'success' && data.current_players) {
+                    updateScoreboardPlayers(data.current_players); // Use helper to update UI
+                    scoreUpdatePanelDiv.classList.remove('hidden');
+                } else if (response.status === 404 || (response.ok && data.status !== 'success')) {
+                    // Handle 404 or logical "not found" from API
+                    console.log('Current players not set or fetch failed, fetching player data for selection...');
+                    await fetchPlayerData(matchId);
+                    playerSelectionDiv.classList.remove('hidden');
+                    initialPlayerMessageDiv.textContent = data.message || 'Please select initial players.';
+                } else {
+                    // Handle other non-OK HTTP errors
+                    throw new Error(data.message || `Checking players failed: ${response.statusText}`);
+                }
+            } catch (error) {
+                console.error("Error in checkCurrentPlayers:", error);
+                messageDiv.textContent = `Error checking players: ${error.message}`;
+                hideAllPanels();
+            }
+        }
+
+        async function fetchPlayerData(matchId) {
+            if (!matchId) { console.error("fetchPlayerData no ID"); initialPlayerMessageDiv.textContent = 'Error: No Match ID.'; return; }
+            clearMessages();
+            console.log(`Fetching player data for Match ID: ${matchId}`);
+            try {
+                // Use Promise.all to fetch in parallel
+                const [battingResponse, bowlingResponse] = await Promise.all([
+                    fetch(`${API_BASE_URL}/getbattingplayers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ match_id: matchId }), }),
+                    fetch(`${API_BASE_URL}/getbowlingplayers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ match_id: matchId }), })
+                ]);
+
+                const battingData = await battingResponse.json();
+                const bowlingData = await bowlingResponse.json();
+
+                let batError = '', bowlError = '';
+
+                if (battingResponse.ok && battingData.status === 'success' && battingData.players) {
+                    populateDropdown(strikerSelect, battingData.players);
+                    populateDropdown(nonStrikerSelect, battingData.players);
+                } else {
+                    batError = `Batting: ${battingData.message || `HTTP ${battingResponse.status}`}`;
+                }
+
+                if (bowlingResponse.ok && bowlingData.status === 'success' && bowlingData.players) {
+                    populateDropdown(bowlerSelect, bowlingData.players);
+                } else {
+                    bowlError = `Bowling: ${bowlingData.message || `HTTP ${bowlingResponse.status}`}`;
+                }
+
+                if (batError || bowlError) {
+                    initialPlayerMessageDiv.innerHTML = `Error fetching players: ${batError} ${bowlError}`.trim();
+                }
+
+            } catch (error) {
+                console.error("Error in fetchPlayerData:", error);
+                initialPlayerMessageDiv.textContent = `Network error fetching players: ${error.message}`;
+            }
+        }
+
+        function populateDropdown(selectElement, players) {
+            selectElement.innerHTML = '<option value="">-- Select Player --</option>'; // Clear existing options
+            if (Array.isArray(players)) {
+                players.forEach(p => {
+                    // Assuming player object has 'player_id' and 'player_name'
+                    const o = document.createElement('option');
+                    o.value = p.player_id || p.player_name; // Use ID if available, fallback to name
+                    o.textContent = p.player_name;
+                    selectElement.appendChild(o);
+                });
+            } else {
+                console.error("Invalid player data format:", players);
+                initialPlayerMessageDiv.textContent += ` Invalid player list received.`;
+            }
+        }
+
+        async function setInitialPlayers() {
+            const matchId = currentMatchId;
+            if (!matchId) { initialPlayerMessageDiv.textContent = 'Error: Match ID is not available.'; return; }
+            const striker = strikerSelect.value;
+            const nonStriker = nonStrikerSelect.value;
+            const bowler = bowlerSelect.value;
+            clearMessages();
+            if (!striker || !nonStriker || !bowler) { initialPlayerMessageDiv.textContent = 'Please select all initial players.'; return; }
+            if (striker === nonStriker) { initialPlayerMessageDiv.textContent = 'Striker and Non-Striker cannot be the same player.'; return; }
+
+            const payload = { match_id: matchId, striker: striker, non_striker: nonStriker, current_bowler: bowler };
+            console.log('Setting initial players:', payload);
+            const apiUrl = `${API_BASE_URL}/setcurrentplayers`;
+
+            try {
+                initialPlayerMessageDiv.textContent = 'Setting players...'; // Indicate processing
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const data = await response.json();
+                if (!response.ok) { throw new Error(data.message || `HTTP ${response.status}`); }
+                if (data.status === 'success') {
+                    scoreUpdateMessageDiv.textContent = 'Initial players set successfully.';
+                    checkCurrentPlayers(); // Reload state to show score panel
+                } else { throw new Error(data.message || 'Failed to set initial players.'); }
+            } catch (error) {
+                console.error("Error setting initial players:", error);
+                initialPlayerMessageDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        // --- Generic Function to Handle Score API Calls ---
+        async function callScoreApi(action, additionalData = {}) {
+            const matchId = currentMatchId;
+            if (!matchId) {
+                messageDiv.textContent = 'Error: No Match ID available for API call.';
+                return; // Stop if match ID is missing
+            }
+
+            clearMessages(); // Clear previous messages
+            scoreUpdateMessageDiv.textContent = 'Processing update...'; // Indicate activity
+
+            // Construct payload
+            const payload = {
+                match_id: matchId,
+                action: action,
+                ...additionalData // Spread additional data like 'runs' or 'new_bowler'
+            };
+
+            console.log(`Calling Score API: ${action}`, payload);
+            const apiUrl = `${API_BASE_URL}/updatescore`; // Use the requested endpoint name
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                const data = await response.json(); // Attempt to parse JSON always
+
+                if (!response.ok) {
+                    // Throw error using message from JSON if available, otherwise status text
+                    throw new Error(data.message || `API request failed with status ${response.status}`);
+                }
+
+                // Handle success
+                if (data.status === 'success') {
+                    console.log(`API Success (${action}):`, data);
+                    scoreUpdateMessageDiv.textContent = data.message || `${action} successful.`; // Display success message from API
+                    // Update UI based on the returned state
+                    if (data.updated_state) {
+                        updateScoreboardPlayers(data.updated_state);
+                        // --- TODO: Update other UI elements if they exist ---
+                        // e.g., updateScoreDisplay(data.updated_state.current_score, data.updated_state.current_wickets);
+                        // e.g., updateOverDisplay(data.updated_state.current_over, data.updated_state.current_ball);
+                    } else {
+                        console.warn("API success response did not include 'updated_state'. UI might be stale.");
+                        // Optionally call checkCurrentPlayers() again, but ideally API should return state
+                        // checkCurrentPlayers();
+                    }
+                } else {
+                    // Handle cases where response is OK but API reports logical error
+                    throw new Error(data.message || `API reported an error for action ${action}.`);
+                }
+
+            } catch (error) {
+                console.error(`Error during API call (${action}):`, error);
+                // Display error in a prominent place
+                messageDiv.textContent = `Error: ${error.message}`;
+                scoreUpdateMessageDiv.textContent = ''; // Clear processing message
+            }
+        }
+
+        // --- Helper to Update Player Display ---
+        function updateScoreboardPlayers(state) {
+            currentStrikerSpan.textContent = state.striker || 'N/A';
+            currentNonStrikerSpan.textContent = state.non_striker || 'N/A';
+            currentBowlerSpan.textContent = state.current_bowler || 'N/A';
+        }
+
+
+        // --- Action Functions (calling the generic API handler) ---
+
+        function updateScore(runs) {
+            // Add validation for runs if needed
+            if (typeof runs !== 'number' || runs < 0 || runs > 6) {
+                console.error("Invalid runs value passed to updateScore:", runs);
+                messageDiv.textContent = "Invalid number of runs specified.";
+                return;
+            }
+            callScoreApi('runs', { runs: runs });
+        }
+
+        async function recordWicket() {
+            try {
+                const matchId = currentMatchId;
+
+                if (!matchId) {
+                    console.error("Match ID is required to record a wicket.");
+                    return;
+                }
+
+                // 1. Fetch current players (striker and non-striker)
+                const currentPlayersResponse = await fetch('http://localhost/SportsApp/api/getcurrentplayers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ match_id: parseInt(matchId) }),
+                });
+
+                if (!currentPlayersResponse.ok) {
+                    const errorData = await currentPlayersResponse.json();
+                    console.error("Failed to fetch current players:", errorData.message);
+                    return;
+                }
+
+                const currentPlayersData = await currentPlayersResponse.json();
+                console.log(currentPlayersData);
+
+                const currentStriker = currentPlayersData.current_players.striker;
+                const currentNonStriker = currentPlayersData.current_players.non_striker;
+                const batsmenOutOptions = [];
+
+                if (currentStriker) {
+                    batsmenOutOptions.push({ player_name: currentStriker });
+                }
+                if (currentNonStriker && currentNonStriker !== currentStriker) {
+                    batsmenOutOptions.push({ player_name: currentNonStriker });
+                }
+
+                // 2. Fetch all NOT OUT batsmen of the batting team for replacement
+                const notOutBatsmenResponse = await fetch('http://localhost/SportsApp/api/getnotoutbatsmen', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ match_id: parseInt(matchId) }),
+                });
+
+                if (!notOutBatsmenResponse.ok) {
+                    const errorData = await notOutBatsmenResponse.json();
+                    console.error("Failed to fetch not-out batsmen for replacement:", errorData.message);
+                    return;
+                }
+
+                const notOutBatsmenData = await notOutBatsmenResponse.json();
+                let replacementOptions = [];
+                if (notOutBatsmenData.status === 'success' && notOutBatsmenData.data) {
+                    replacementOptions = notOutBatsmenData.data;
+                }
+
+                // 3. Get the current bowler (assuming you have a way to track this on the frontend)
+                const currentBowler = currentPlayersData.current_players.current_bowler;
+
+                if (!currentBowler) {
+                    console.warn("Current bowler not identified. Please ensure it's tracked.");
+                    return;
+                }
+
+                // 4. Display a popup/modal to select the batsman out and the new batsman
+                const wicketDetails = await displayWicketSelectionPopup(batsmenOutOptions, replacementOptions);
+
+                if (wicketDetails) {
+                    const { batsmanOut, newBatsman } = wicketDetails;
+
+                    const requestData = {
+                        match_id: parseInt(matchId),
+                        batsman_out: batsmanOut,
+                        bowler: currentBowler,
+                        new_batsman: newBatsman,
+                    };
+
+                    const response = await fetch('http://localhost/SportsApp/api/recordwicket', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(requestData),
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error("Failed to record wicket:", errorData.message);
+                        return;
+                    }
+
+                    const responseData = await response.json();
+                    console.log("Wicket recorded successfully:", responseData.message);
+                    window.location.reload();
+                } else {
+                    console.log("Wicket recording cancelled or no batsmen selected.");
+                }
+
+            } catch (error) {
+                console.error("An error occurred while recording the wicket:", error);
+            }
+        }
+
+        async function displayWicketSelectionPopup(batsmenOutOptions, replacementOptions) {
+            return new Promise((resolve) => {
+                const modal = document.createElement('div');
+                modal.style.position = 'fixed';
+                modal.style.top = '50%';
+                modal.style.left = '50%';
+                modal.style.transform = 'translate(-50%, -50%)';
+                modal.style.backgroundColor = 'white';
+                modal.style.padding = '20px';
+                modal.style.border = '1px solid black';
+                modal.style.zIndex = '1000';
+
+                const title = document.createElement('h2');
+                title.textContent = 'Record Wicket';
+                modal.appendChild(title);
+
+                // Select for Batsman Out
+                const batsmanOutLabel = document.createElement('label');
+                batsmanOutLabel.textContent = 'Batsman Out:';
+                modal.appendChild(batsmanOutLabel);
+                const batsmanOutSelect = document.createElement('select');
+                const defaultOutOption = document.createElement('option');
+                defaultOutOption.value = '';
+                defaultOutOption.textContent = 'Select Batsman Out';
+                batsmanOutSelect.appendChild(defaultOutOption);
+                batsmenOutOptions.forEach(batsman => {
+                    const option = document.createElement('option');
+                    option.value = batsman.player_name;
+                    option.textContent = batsman.player_name;
+                    batsmanOutSelect.appendChild(option);
+                });
+                modal.appendChild(batsmanOutSelect);
+
+                // Select for New Batsman
+                const newBatsmanLabel = document.createElement('label');
+                newBatsmanLabel.textContent = 'New Batsman:';
+                modal.appendChild(newBatsmanLabel);
+                const newBatsmanSelect = document.createElement('select');
+                const defaultNewOption = document.createElement('option');
+                defaultNewOption.value = '';
+                defaultNewOption.textContent = 'Select New Batsman';
+                newBatsmanSelect.appendChild(defaultNewOption);
+                replacementOptions.forEach(batsman => {
+                    const option = document.createElement('option');
+                    option.value = batsman.player_name;
+                    option.textContent = batsman.player_name;
+                    newBatsmanSelect.appendChild(option);
+                });
+                modal.appendChild(newBatsmanSelect);
+
+                const confirmButton = document.createElement('button');
+                confirmButton.textContent = 'Record Wicket';
+                confirmButton.addEventListener('click', () => {
+                    const batsmanOut = batsmanOutSelect.value;
+                    const newBatsman = newBatsmanSelect.value;
+
+                    if (batsmanOut && newBatsman) {
+                        document.body.removeChild(modal);
+                        resolve({ batsmanOut, newBatsman });
+                    } else {
+                        alert('Please select the batsman out and the new batsman.');
+                    }
+                });
+                modal.appendChild(confirmButton);
+
+                const cancelButton = document.createElement('button');
+                cancelButton.textContent = 'Cancel';
+                cancelButton.addEventListener('click', () => {
+                    document.body.removeChild(modal);
+                    resolve(null);
+                });
+                modal.appendChild(cancelButton);
+
+                document.body.appendChild(modal);
+            });
+        }
+
+        function nextBall() { // This maps to 'dot_ball' action in the backend logic
+            callScoreApi('runs', { runs: 0 });
+        }
+
+        async function wideBall() {
+            try {
+                const matchId = currentMatchId; // Assuming you have an input field for matchId
+
+                if (!matchId) {
+                    console.error("Match ID is required to record a wide ball.");
+                    // Optionally display an error message to the user
+                    return;
+                }
+
+                const requestData = {
+                    match_id: parseInt(matchId),
+                };
+
+                const response = await fetch('http://localhost/SportsApp/api/wideball', { // Adjust the path if necessary
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error("Failed to record wide ball:", errorData.message);
+                    // Optionally display an error message to the user
+                    return;
+                }
+
+                const responseData = await response.json();
+                console.log("Wide ball recorded successfully:", responseData.message);
+                scoreUpdateMessageDiv.textContent = 'Wide ball recorded, team score and bowler runs updated';
+                // You might want to update other UI elements as needed (e.g., ball count if you track illegal deliveries).
+
+            } catch (error) {
+                console.error("An error occurred while recording wide ball:", error);
+                // Optionally display a generic error message to the user
+            }
+        }
+
+        async function noBall() {
+            try {
+                const matchId = currentMatchId; // Assuming you have an input field for matchId
+
+                if (!matchId) {
+                    console.error("Match ID is required to record a wide ball.");
+                    // Optionally display an error message to the user
+                    return;
+                }
+
+                const requestData = {
+                    match_id: parseInt(matchId),
+                };
+
+                const response = await fetch('http://localhost/SportsApp/api/wideball', { // Adjust the path if necessary
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error("Failed to record wide ball:", errorData.message);
+                    // Optionally display an error message to the user
+                    return;
+                }
+
+                const responseData = await response.json();
+                console.log("Wide ball recorded successfully:", responseData.message);
+                scoreUpdateMessageDiv.textContent = 'No ball recorded, team score and bowler runs updated';
+                // You might want to update other UI elements as needed (e.g., ball count if you track illegal deliveries).
+
+            } catch (error) {
+                console.error("An error occurred while recording wide ball:", error);
+                // Optionally display a generic error message to the user
+            }
+        }
+
+        async function changeStrike() {
+            try {
+                const matchId = currentMatchId;
+
+                if (!matchId) {
+                    console.error("Match ID is required to change strike.");
+                    // Optionally display an error message to the user
+                    return;
+                }
+
+                const requestData = {
+                    match_id: parseInt(matchId),
+                };
+
+                const response = await fetch('http://localhost/SportsApp/api/strikechange', { // Adjust the path if necessary
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error("Failed to change strike:", errorData.message);
+                    // Optionally display an error message to the user
+                    return;
+                }
+
+                const responseData = await response.json();
+                console.log("Strike changed successfully:", responseData.message);
+
+                // Update the frontend UI based on the response
+                const currentStrikerSpan = document.getElementById('currentStriker');
+                const currentNonStrikerSpan = document.getElementById('currentNonStriker');
+
+                if (currentStrikerSpan && currentNonStrikerSpan && responseData.new_striker && responseData.old_striker) {
+                    currentStrikerSpan.textContent = responseData.new_striker;
+                    currentNonStrikerSpan.textContent = responseData.old_striker;
+                } else {
+                    console.warn("Could not update striker/non-striker display on the frontend.");
+                }
+
+                // Optionally, you might want to trigger a refresh of other score elements
+                // or update the game state displayed to the user.
+
+            } catch (error) {
+                console.error("An error occurred while changing strike:", error);
+                // Optionally display a generic error message to the user
+            }
+        }
+
+        async function changeBowler() {
+            try {
+                const matchId = currentMatchId; // Assuming 'currentMatchId' is a globally available variable
+
+                if (!matchId) {
+                    console.error("Match ID is required to change the bowler.");
+                    // Optionally display an error message to the user
+                    return;
+                }
+
+                // 1. Fetch all bowlers of the current bowling team for the match
+                const bowlersResponse = await fetch('http://localhost/SportsApp/api/getmatchbowlers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ match_id: parseInt(matchId) }),
+                });
+
+                if (!bowlersResponse.ok) {
+                    const errorData = await bowlersResponse.json();
+                    console.error("Failed to fetch bowlers:", errorData.message);
+                    // Optionally display an error message to the user
+                    return;
+                }
+
+                const bowlersData = await bowlersResponse.json();
+
+                if (bowlersData.status !== 'success' || !bowlersData.data || bowlersData.data.length === 0) {
+                    console.warn("No bowlers found for the current bowling team in this match.");
+                    // Optionally display a message to the user
+                    return;
+                }
+
+                const bowlers = bowlersData.data;
+
+                // 2. Display a popup/modal to select the new bowler
+                const selectedBowler = await displayBowlerSelectionPopup(bowlers);
+
+                if (selectedBowler) {
+                    // 3. Update the backend with the new bowler
+                    const requestData = {
+                        match_id: parseInt(matchId),
+                        new_bowler: selectedBowler,
+                    };
+
+                    const updateResponse = await fetch('http://localhost/SportsApp/api/changebowler', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(requestData),
+                    });
+
+                    if (!updateResponse.ok) {
+                        const errorData = await updateResponse.json();
+                        console.error("Failed to update bowler:", errorData.message);
+                        // Optionally display an error message to the user
+                        return;
+                    }
+
+                    const updateResponseData = await updateResponse.json();
+                    console.log("Bowler changed successfully:", updateResponseData.message);
+
+                    // 4. Update the frontend UI
+                    const currentBowlerSpan = document.getElementById('currentBowler'); // Assuming you have an element to display the current bowler
+                    if (currentBowlerSpan) {
+                        currentBowlerSpan.textContent = updateResponseData.new_bowler;
+                    } else {
+                        console.warn("Could not update current bowler display on the frontend.");
+                    }
+                } else {
+                    console.log("Bowler change cancelled or no bowler selected.");
+                }
+
+            } catch (error) {
+                console.error("An error occurred while changing the bowler:", error);
+            }
+        }
+
+        async function displayBowlerSelectionPopup(bowlers) {
+            return new Promise((resolve) => {
+                // Create the popup elements
+                const modal = document.createElement('div');
+                modal.style.position = 'fixed';
+                modal.style.top = '50%';
+                modal.style.left = '50%';
+                modal.style.transform = 'translate(-50%, -50%)';
+                modal.style.backgroundColor = 'white';
+                modal.style.padding = '20px';
+                modal.style.border = '1px solid black';
+                modal.style.zIndex = '1000';
+
+                const title = document.createElement('h2');
+                title.textContent = 'Select New Bowler';
+                modal.appendChild(title);
+
+                const select = document.createElement('select');
+                bowlers.forEach(bowler => {
+                    const option = document.createElement('option');
+                    option.value = bowler.player_name;
+                    option.textContent = bowler.player_name;
+                    select.appendChild(option);
+                });
+                modal.appendChild(select);
+
+                const confirmButton = document.createElement('button');
+                confirmButton.textContent = 'Confirm';
+                confirmButton.addEventListener('click', () => {
+                    const selectedBowler = select.value;
+                    document.body.removeChild(modal);
+                    resolve(selectedBowler);
+                });
+                modal.appendChild(confirmButton);
+
+                const cancelButton = document.createElement('button');
+                cancelButton.textContent = 'Cancel';
+                cancelButton.addEventListener('click', () => {
+                    document.body.removeChild(modal);
+                    resolve(null);
+                });
+                modal.appendChild(cancelButton);
+
+                document.body.appendChild(modal);
+            });
+        }
+    </script>
+</body>
+
+</html>

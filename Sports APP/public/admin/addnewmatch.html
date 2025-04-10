@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Add New Match - ScoreboardX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <style>
+    body {
+      background-color: #121212;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+    }
+
+    .sidebar {
+      height: 100vh;
+      background-color: #1f1f1f;
+      padding-top: 2rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 250px;
+      border-right: 1px solid #333;
+    }
+
+    .sidebar h4 {
+      font-weight: bold;
+      color: #4dabf7;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .sidebar a {
+      color: #aaa;
+      text-decoration: none;
+      display: block;
+      padding: 1rem 2rem;
+      transition: background-color 0.2s ease;
+    }
+
+    .sidebar a:hover {
+      background-color: #333;
+      color: #4dabf7;
+    }
+
+    .sidebar a.active {
+      background-color: #333;
+      color: #4dabf7;
+    }
+
+    .main-content {
+      margin-left: 250px;
+      padding: 2rem;
+    }
+
+    .card {
+      background-color: #1e1e1e;
+      border: none;
+      border-radius: 1rem;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      color: white;
+    }
+
+    .card-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+      color: #4dabf7;
+    }
+
+    .form-label {
+      color: #ccc;
+    }
+
+    .form-control {
+      background-color: #333;
+      color: #fff;
+      border: 1px solid #555;
+    }
+
+    .form-control:focus {
+      background-color: #444;
+      border-color: #4dabf7;
+      box-shadow: 0 0 0 0.25rem rgba(77, 171, 247, 0.25);
+    }
+
+    .btn-primary {
+      background-color: #4dabf7;
+      border-color: #4dabf7;
+    }
+
+    .btn-primary:hover {
+      background-color: #3a8bcd;
+      border-color: #3a8bcd;
+    }
+
+    .btn-secondary {
+      background-color: #6c757d;
+      border-color: #6c757d;
+    }
+
+    .btn-secondary:hover {
+      background-color: #545b62;
+      border-color: #4e555b;
+    }
+
+    #nonAdminContent {
+      color: #ffc107;
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 1.2rem;
+      display: none; /* Initially hidden */
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h4>Admin Panel</h4>
+    <a href="/admin/dashboard"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a>
+    <a href="/admin/matches" class="active"><i class="fas fa-futbol me-2"></i>Manage Matches</a>
+    <a href="/admin/users"><i class="fas fa-users me-2"></i>Users</a>
+    <a href="/admin/settings"><i class="fas fa-cog me-2"></i>Settings</a>
+  </div>
+
+  <div class="main-content" id="mainContent">
+    <h2 class="mb-4">Add New Match</h2>
+    <div class="card p-4">
+      <h5 class="card-title">Match Details</h5>
+      <form id="addMatchForm">
+        <div class="mb-3">
+          <label for="team_a" class="form-label">Team A</label>
+          <input type="text" class="form-control" id="team_a" name="team_a" required>
+        </div>
+        <div class="mb-3">
+          <label for="team_b" class="form-label">Team B</label>
+          <input type="text" class="form-control" id="team_b" name="team_b" required>
+        </div>
+        <div class="mb-3">
+          <label for="match_date" class="form-label">Date and Time</label>
+          <input type="datetime-local" class="form-control" id="match_date" name="match_date" required>
+        </div>
+        <div class="mb-3">
+          <label for="location" class="form-label">Venue</label>
+          <input type="text" class="form-control" id="location" name="location" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Match</button>
+        <a href="/admin/matches" class="btn btn-secondary ms-2">Cancel</a>
+      </form>
+    </div>
+  </div>
+
+  <div class="main-content" id="nonAdminContent">
+    <div class="container mt-4">
+      <h2>Access Denied</h2>
+      <p id="nonAdminMessage">You do not have administrator privileges to view this page. You will be redirected shortly.</p>
+    </div>
+  </div>
+
+  <script>
+    const mainContent = document.getElementById('mainContent');
+    const nonAdminContent = document.getElementById('nonAdminContent');
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    }
+
+    async function fetchUserData() {
+      const token = getCookie('token');
+      if (!token) {
+        console.error('Token not found in cookies.');
+        redirectToHome();
+        return null;
+      }
+
+      try {
+        const response = await fetch('http://localhost/SportsApp/api/users/me', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token: token }),
+        });
+
+        if (!response.ok) {
+          console.error(`Failed to fetch user data: ${response.status}`);
+          redirectToHome();
+          return null;
+        }
+
+        const data = await response.json();
+        console.log(data);
+        return data.User;
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        redirectToHome();
+        return null;
+      }
+    }
+
+    function redirectToHome() {
+      mainContent.style.display = 'none';
+      nonAdminContent.style.display = 'block';
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 500);
+    }
+
+    async function checkAdminRole() {
+      const userData = await fetchUserData();
+      if (!userData || userData.role !== 'admin') {
+        redirectToHome();
+      } else {
+        mainContent.style.display = 'block';
+        nonAdminContent.style.display = 'none';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', checkAdminRole);
+
+    document.getElementById('addMatchForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const formData = new FormData(event.target);
+      const matchDateLocal = formData.get('match_date');
+
+      // Convert datetime-local format (YYYY-MM-DDTHH:MM) to DD-MM-YYYY-HH-MM
+      const dateObj = new Date(matchDateLocal);
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const year = dateObj.getFullYear();
+      const hours = String(dateObj.getHours()).padStart(2, '0');
+      const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+
+      const formattedDate = `${day}-${month}-${year}-${hours}-${minutes}`;
+
+      const token = getCookie('token');
+      if (!token) {
+        alert('Authentication token not found. Please log in again.');
+        window.location.href = '/login';
+        return;
+      }
+
+      const matchData = {
+        team_a: formData.get('team_a'),
+        team_b: formData.get('team_b'),
+        match_date: formattedDate,
+        location: formData.get('location')
+      };
+
+      try {
+        const response = await fetch('http://localhost/SportsApp/api/creatematch', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`, // Send token as Bearer token
+          },
+          body: JSON.stringify(matchData),
+        });
+
+        if (response.ok) {
+          alert('Match added successfully!');
+          window.location.href = '/admin/matches';
+        } else if (response.status === 401 || response.status === 403) {
+          alert('Unauthorized access. Please log in as an administrator.');
+          window.location.href = '/login';
+        } else {
+          const errorData = await response.json();
+          alert(`Error adding match: ${errorData.message || 'Something went wrong'}`);
+        }
+      } catch (error) {
+        console.error('Error adding match:', error);
+        alert('Failed to add match. Please try again.');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard - ScoreboardX</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      background-color: #121212;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .sidebar {
+      height: 100vh;
+      width: 250px;
+      background-color: #1f1f1f;
+      padding-top: 2rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+    }
+
+    .sidebar h4 {
+        font-weight: bold;
+      color: #4dabf7;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .sidebar a {
+      color: #aaa;
+      text-decoration: none;
+      display: block;
+      padding: 1rem 2rem;
+      transition: background-color 0.2s ease;
+    }
+
+    .sidebar a:hover, .sidebar a.active {
+      background-color: #333;
+      color: #4dabf7;
+    }
+
+    .main-content {
+      margin-left: 250px;
+      width: calc(100% - 250px);
+      padding: 2rem;
+    }
+
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background-color: #1e1e1e;
+      border: none;
+      border-radius: 1rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      color: white;
+      padding: 2rem;
+    }
+
+    .card-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #4dabf7;
+      margin-bottom: 1rem;
+    }
+
+    .card-value {
+      font-size: 2.5rem;
+      font-weight: bold;
+    }
+
+    .card-icon {
+      font-size: 2rem;
+      margin-right: 1rem;
+      color: #4dabf7;
+    }
+
+    .row.g-4 > div {
+      margin-bottom: 1.5rem; /* Adjust spacing between cards */
+    }
+
+    .section-heading {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #eee;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid #333;
+      padding-bottom: 0.5rem;
+    }
+
+    .list-group-item {
+      background-color: #1f1f1f;
+      color: #aaa;
+      border-color: #333;
+    }
+
+    .list-group-item strong {
+      color: #ddd;
+    }
+
+    .alert {
+      background-color: #333;
+      color: #eee;
+      border-color: #555;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .alert-info {
+      background-color: #2c3e50;
+      border-color: #34495e;
+    }
+
+    .alert-warning {
+      background-color: #d4ac0d33;
+      border-color: #d4ac0d;
+      color: #eee;
+    }
+
+    #nonAdminContent {
+      color: #ffc107;
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 1.2rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar">
+    <h4>Admin Panel</h4>
+    <a href="/admin/dashboard" class="active"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a>
+    <a href="/admin/matches"><i class="fas fa-futbol me-2"></i>Manage Matches</a>
+    <a href="/admin/users"><i class="fas fa-users me-2"></i>Users</a>
+    <a href="/admin/settings"><i class="fas fa-cog me-2"></i>Settings</a>
+  </div>
+
+  <div class="main-content" id="mainContent">
+    <div class="container mt-4">
+      <div class="dashboard-header">
+        <h2>Dashboard</h2>
+        <button id="logoutBtn" class="btn"><i class="fas fa-sign-out-alt me-2"></i>Logout</button>
+      </div>
+
+      <h4 class="section-heading">Overview</h4>
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="card">
+            <h5 class="card-title"><i class="fas fa-users card-icon"></i>Total Users</h5>
+            <p class="card-value" id="totalUsers">Loading...</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card">
+            <h5 class="card-title"><i class="fas fa-play card-icon"></i>Live Matches</h5>
+            <p class="card-value" id="liveMatches">Loading...</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card">
+            <h5 class="card-title"><i class="fas fa-calendar-alt card-icon"></i>Scheduled Matches</h5>
+            <p class="card-value" id="scheduledMatches">Loading...</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card">
+            <h5 class="card-title"><i class="fas fa-check-circle card-icon"></i>Completed Matches</h5>
+            <p class="card-value" id="completedMatches">Loading...</p>
+          </div>
+        </div>
+      </div>
+
+      <h4 class="section-heading">Match Statistics</h4>
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="card">
+            <h5 class="card-title"><i class="fas fa-futbol card-icon"></i>Total Matches</h5>
+            <p class="card-value" id="totalMatches">Loading...</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card">
+            <h5 class="card-title"><i class="fas fa-flag-checkered card-icon"></i>Matches with Playing 11 Set</h5>
+            <p class="card-value" id="matchesPlaying11Set">Loading...</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card">
+            <h5 class="card-title"><i class="fas fa-flag card-icon"></i>Matches with Playing 11 Not Set</h5>
+            <p class="card-value" id="matchesPlaying11NotSet">Loading...</p>
+          </div>
+        </div>
+      </div>
+
+      <h4 class="section-heading">Recent Activity</h4>
+      <ul class="list-group" id="recentActivityList">
+        <li class="list-group-item">Loading recent activity...</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="main-content" id="nonAdminContent" style="display: none;">
+    <div class="container mt-4">
+      <h2>Access Denied</h2>
+      <p id="nonAdminMessage">You do not have administrator privileges to view this page. You will be redirected shortly.</p>
+    </div>
+  </div>
+
+  <script>
+    const mainContent = document.getElementById('mainContent');
+    const nonAdminContent = document.getElementById('nonAdminContent');
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      window.location.href = "/login";
+    });
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    }
+
+    async function fetchUserData() {
+      const token = getCookie('token');
+      if (!token) {
+        console.error('Token not found in cookies.');
+        redirectToHome();
+        return null;
+      }
+
+      try {
+        const response = await fetch('http://localhost/SportsApp/api/users/me', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token: token }),
+        });
+
+        if (!response.ok) {
+          console.error(`Failed to fetch user data: ${response.status}`);
+          redirectToHome();
+          return null;
+        }
+
+        const data = await response.json();
+        console.log(data);
+        return data.User;
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        redirectToHome();
+        return null;
+      }
+    }
+
+    async function fetchUsers() {
+      try {
+        const response = await fetch('http://localhost/SportsApp/api/getusers');
+        if (!response.ok) {
+          console.error('Failed to fetch users:', response.status);
+          return null;
+        }
+        const data = await response.json();
+        return data.users || [];
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        return null;
+      }
+    }
+
+    async function fetchMatches() {
+      try {
+        const response = await fetch('http://localhost/SportsApp/api/getmatches');
+        if (!response.ok) {
+          console.error('Failed to fetch matches:', response.status);
+          return null;
+        }
+        const data = await response.json();
+        return data.matches || [];
+      } catch (error) {
+        console.error('Error fetching matches:', error);
+        return null;
+      }
+    }
+
+    async function updateDashboardData() {
+      const userData = await fetchUserData();
+
+      if (!userData || userData.role !== 'admin') {
+        redirectToHome();
+        return;
+      }
+
+      const users = await fetchUsers();
+      const matches = await fetchMatches();
+
+      if (users) {
+        document.getElementById('totalUsers').textContent = users.length;
+      }
+
+      if (matches) {
+        const liveMatches = matches.filter(match => match.status === 'live').length;
+        const scheduledMatches = matches.filter(match => match.status === 'upcoming').length;
+        const completedMatches = matches.filter(match => match.status === 'completed').length;
+        const totalMatches = matches.length;
+        const matchesPlaying11Set = matches.filter(match => match.playing11_status === 'set').length;
+        const matchesPlaying11NotSet = matches.filter(match => match.playing11_status === 'not_set').length;
+
+        document.getElementById('liveMatches').textContent = liveMatches;
+        document.getElementById('scheduledMatches').textContent = scheduledMatches;
+        document.getElementById('completedMatches').textContent = completedMatches;
+        document.getElementById('totalMatches').textContent = totalMatches;
+        document.getElementById('matchesPlaying11Set').textContent = matchesPlaying11Set;
+        document.getElementById('matchesPlaying11NotSet').textContent = matchesPlaying11NotSet;
+
+        // Basic Recent Activity (you can enhance this based on your API)
+        const recentActivityList = document.getElementById('recentActivityList');
+        recentActivityList.innerHTML = '';
+        const recentActivities = [];
+
+        if (users && users.length > 0) {
+          recentActivities.push(`Total Users: ${users.length}`);
+        }
+        if (matches && matches.length > 0) {
+          recentActivities.push(`Total Matches: ${matches.length}`);
+          const lastLiveMatch = matches.find(match => match.status === 'live');
+          if (lastLiveMatch) {
+            recentActivities.push(`Last Live Match: ${lastLiveMatch.team_a} vs ${lastLiveMatch.team_b}`);
+          }
+        }
+
+        if (recentActivities.length > 0) {
+          recentActivities.forEach(activity => {
+            const listItem = document.createElement('li');
+            listItem.classList.add('list-group-item');
+            listItem.textContent = activity;
+            recentActivityList.appendChild(listItem);
+          });
+        } else {
+          const listItem = document.createElement('li');
+          listItem.classList.add('list-group-item');
+          listItem.textContent = 'No recent activity available.';
+          recentActivityList.appendChild(listItem);
+        }
+
+        mainContent.style.display = 'block';
+        nonAdminContent.style.display = 'none';
+      }
+    }
+
+    function redirectToHome() {
+      mainContent.style.display = 'none';
+      nonAdminContent.style.display = 'block';
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 500);
+    }
+
+    window.onload = updateDashboardData;
+  </script>
+</body>
+</html>
