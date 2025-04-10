@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard - ScoreboardX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <style>
+    body {
+      background-color: #121212;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+    }
+
+    .sidebar {
+      height: 100vh;
+      background-color: #1f1f1f;
+      padding-top: 2rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 250px;
+      border-right: 1px solid #333;
+    }
+
+    .sidebar h4 {
+        font-weight: bold;
+        color: #4dabf7;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .sidebar a {
+      color: #aaa;
+      text-decoration: none;
+      display: block;
+      padding: 1rem 2rem;
+      transition: background-color 0.2s ease;
+    }
+
+    .sidebar a:hover, .sidebar a.active {
+      background-color: #333;
+      color: #4dabf7;
+    }
+
+    .main-content {
+      margin-left: 250px;
+      padding: 2rem;
+    }
+
+    .card {
+      background-color: #1f1f1f;
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+
+    th, td {
+      vertical-align: middle;
+    }
+
+    .btn-view {
+      background-color: #4dabf7;
+      color: #fff;
+    }
+
+    .btn-ban {
+      background-color: rgb(255, 64, 64);
+      color: #fff;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+        z-index: 1000; /* Ensure it's above other content if it becomes non-fixed */
+      }
+
+      .main-content {
+        margin-left: 0;
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h4>Admin Panel</h4>
+    <a href="/admin/dashboard"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a>
+    <a href="/admin/matches"><i class="fas fa-futbol me-2"></i>Manage Matches</a>
+    <a href="/admin/users" class="active"><i class="fas fa-users me-2"></i>Users</a>
+    <a href="/admin/settings"><i class="fas fa-cog me-2"></i>Settings</a>
+  </div>
+
+  <div class="main-content">
+    <h2 class="mb-4">All Users</h2>
+    <div class="card p-4">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover table-bordered text-center">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Joined On</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody">
+            </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function logout() {
+      document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      window.location.href = "/login";
+    }
+
+    async function fetchUsers() {
+      try {
+        const response = await fetch('http://localhost/SportsApp/api/getusers');
+        if (!response.ok) throw new Error('Failed to fetch users');
+
+        const data = await response.json();
+        const tbody = document.getElementById('userTableBody');
+        tbody.innerHTML = '';
+
+        data.users.forEach((user, index) => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${user.full_name}</td>
+            <td>${user.email}</td>
+            <td>${user.role}</td>
+            <td>${new Date(user.created_at).toLocaleDateString()}</td>
+            <td>
+              <button class="btn btn-sm btn-view me-2">View</button>
+              <button class="btn btn-sm btn-ban">Ban</button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (err) {
+        console.error(err.message);
+      }
+    }
+
+    window.onload = fetchUsers;
+  </script>
+</body>
+</html>

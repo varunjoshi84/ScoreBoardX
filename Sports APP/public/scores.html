@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Live Score - ScoreboardX</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        /* Styles remain the same as previous version */
+        body { background-color: #121212; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 3rem; }
+        .navbar { background-color: #1f1f1f; border-bottom: 1px solid #333; padding: 0.8rem 1.5rem; }
+        .navbar-brand { font-weight: bold; color: #4dabf7; font-size: 1.5rem; }
+        .back-button { color: #ccc; text-decoration: none; font-size: 1.1rem; }
+        .back-button:hover { color: #fff; }
+        .container { margin-top: 1.5rem; }
+        .score-card { background-color: #1e1e1e; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 0 10px rgba(0,0,0,0.4); }
+        .match-header h3 { font-weight: bold; margin-bottom: 0.5rem; color: #eee; }
+        .match-header .details { font-size: 0.9rem; color: #aaa; margin-bottom: 1rem; }
+        .match-header .badge { font-size: 0.9rem; }
+        .score-summary { border-top: 1px solid #333; border-bottom: 1px solid #333; padding: 1rem 0; margin: 1rem 0; padding-left: 5vw; padding-right: 5vw; }
+        .team-score { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .team-name { font-size: 1.3rem; font-weight: 500; color: #eee; }
+        .score { font-size: 1.4rem; font-weight: bold; color: #4dabf7; }
+        .overs { font-size: 1rem; color: #bbb; margin-left: 5px;}
+        .batting-indicator { font-size: 0.8rem; color: #ffc107; margin-left: 10px; font-style: italic; }
+        .live-players { margin-top: 1rem; }
+        .live-players strong { color: #ffc107; }
+        .live-players .label { color: #aaa; }
+        #messageArea { margin-top: 1rem; min-height: 20px; font-weight: bold; }
+        .loading-spinner { display: block; margin: 2rem auto; width: 3rem; height: 3rem; border: 4px solid #444; border-top-color: #4dabf7; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .hidden { display: none; }
+        .result-text { font-size: 1.1rem; font-weight: bold; color: #28a745; text-align: center; margin-top: 1rem;}
+        .upcoming-text { font-size: 1.1rem; font-weight: bold; color: #ffc107; text-align: center; margin-top: 1rem;}
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-dark">
+        <a href="/" class="back-button">
+            <i class="fas fa-arrow-left me-2"></i>Back to Matches
+        </a>
+        <span class="navbar-brand" href="#">ScoreboardX</span>
+    </nav>
+
+    <div class="container">
+        <div id="loadingIndicator" class="loading-spinner"></div>
+        <div id="scoreContent" class="hidden">
+            <!-- Structure remains the same -->
+             <div class="score-card match-header">
+                <h3 id="matchTitle">Team A vs Team B</h3>
+                <div class="details">
+                    <span id="matchVenue">Venue</span> - <span id="matchDate">Date</span>
+                </div>
+                <span id="matchStatusBadge" class="badge">Status</span>
+                <div id="matchResult" class="result-text hidden"></div>
+                 <div id="matchUpcoming" class="upcoming-text hidden"></div>
+            </div>
+
+            <div class="score-card score-summary">
+                <div class="team-score" id="teamAScoreContainer">
+                    <span class="team-name" id="teamAName">Team A</span>
+                    <div>
+                        <span class="score" id="teamAScore">0/0</span>
+                        <span class="overs" id="teamAOvers">(0.0)</span>
+                        <span class="batting-indicator hidden" id="teamABattingIndicator">*Batting</span>
+                    </div>
+                </div>
+                <div class="team-score" id="teamBScoreContainer">
+                    <span class="team-name" id="teamBName">Team B</span>
+                    <div>
+                        <span class="score" id="teamBScore">0/0</span>
+                        <span class="overs" id="teamBOvers">(0.0)</span>
+                         <span class="batting-indicator hidden" id="teamBBattingIndicator">*Batting</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="score-card live-players hidden" id="livePlayersSection">
+                <h5>Current Players</h5>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span style="width: 100%;" class="label">Striker: <strong id="currentStriker">--</strong></span><br>
+                    <span style="width: 20%; margin-left: 30%;" class="scores"><strong id="strikerscore">0 (0)</strong></span>
+                    <span style="width: 40%; margin-left: 10%;" class="scores"><strong id="sr1">0</strong></span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span style="width: 100%;" class="label">Non-Striker: <strong id="currentNonStriker">--</strong></span><br>
+                    <span style="width: 20%; margin-left: 30%;" class="scores"><strong id="nonstrikerscore">0 (0)</strong></span>
+                    <span style="width: 40%; margin-left: 10%;" class="scores"><strong id="sr2">0</strong></span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span style="width: 100%;" class="label">Bowler: <strong id="currentBowler">--</strong></span><br>
+                    <span style="width: 20%; margin-left: 30%;" class="scores"><strong id="bowlerscore">0-0 (0)</strong></span>
+                    <span style="width: 40%; margin-left: 10%;" class="scores"><strong id="economy">0</strong></span>
+                </div>
+            </div>
+        </div>
+         <div id="messageArea" class="text-danger text-center"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost/SportsApp/api';
+        let currentMatchId = null;
+        let refreshInterval = null;
+        let matchStatus = 'unknown'; // To track status for refresh logic
+        let basicMatchDetails = null; // Store static details
+
+        // --- DOM References ---
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const scoreContent = document.getElementById('scoreContent');
+        const messageArea = document.getElementById('messageArea');
+        const matchTitle = document.getElementById('matchTitle');
+        const matchVenue = document.getElementById('matchVenue');
+        const matchDate = document.getElementById('matchDate');
+        const matchStatusBadge = document.getElementById('matchStatusBadge');
+        const matchResult = document.getElementById('matchResult');
+        const matchUpcoming = document.getElementById('matchUpcoming');
+        const teamAName = document.getElementById('teamAName');
+        const teamAScore = document.getElementById('teamAScore');
+        const teamAOvers = document.getElementById('teamAOvers');
+        const teamABattingIndicator = document.getElementById('teamABattingIndicator');
+        const teamBName = document.getElementById('teamBName');
+        const teamBScore = document.getElementById('teamBScore');
+        const teamBOvers = document.getElementById('teamBOvers');
+        const teamBBattingIndicator = document.getElementById('teamBBattingIndicator');
+        const livePlayersSection = document.getElementById('livePlayersSection');
+        const currentStriker = document.getElementById('currentStriker');
+        const currentNonStriker = document.getElementById('currentNonStriker');
+        const currentBowler = document.getElementById('currentBowler');
+        const strikerscore = document.getElementById('strikerscore');
+        const nonstrikerscore = document.getElementById('nonstrikerscore');
+        const bowlerscore = document.getElementById('bowlerscore');
+        const sr1 = document.getElementById('sr1');
+        const sr2 = document.getElementById('sr2');
+        const economy = document.getElementById('economy');
+        document.addEventListener('DOMContentLoaded', () => {
+            const pathParts = window.location.pathname.split('/');
+            const scoresIndex = pathParts.indexOf('scores');
+            if (scoresIndex !== -1 && scoresIndex + 1 < pathParts.length) {
+                 currentMatchId = pathParts[scoresIndex + 1];
+            }
+            if (!currentMatchId) {
+                 const urlParams = new URLSearchParams(window.location.search);
+                 currentMatchId = urlParams.get('matchId');
+            }
+            if (!currentMatchId || isNaN(parseInt(currentMatchId))) {
+                showError("Invalid or missing Match ID in the URL.");
+                return;
+            }
+            currentMatchId = parseInt(currentMatchId);
+            document.title = `Match ${currentMatchId} Score - ScoreboardX`;
+            loadInitialData();
+        });
+
+        // --- Fetch Initial Data (Basic Details first) ---
+        async function loadInitialData() {
+            if (!currentMatchId) return;
+            loadingIndicator.classList.remove('hidden');
+            scoreContent.classList.add('hidden');
+            messageArea.textContent = '';
+
+            try {
+                // 1. Fetch Basic Details
+                basicMatchDetails = await fetchBasicMatchDetails(currentMatchId);
+                if (!basicMatchDetails) {
+                    throw new Error("Could not load basic match details.");
+                }
+                matchStatus = basicMatchDetails.status; // Store status
+
+                // Update static parts of UI immediately
+                updateStaticUI(basicMatchDetails);
+
+                // 2. Fetch dynamic data (Scores and Players)
+                await refreshLiveData(); // Call the refresh function for the first load
+
+                // 3. Show content and set interval if live
+                loadingIndicator.classList.add('hidden');
+                scoreContent.classList.remove('hidden');
+
+                setupAutoRefresh(matchStatus);
+
+            } catch (error) {
+                console.error("Error loading initial data:", error);
+                showError(`Error loading match data: ${error.message}`);
+                 loadingIndicator.classList.add('hidden'); // Hide loader even on error
+            }
+        }
+
+        // --- Fetch Live Data (Scores and Players) ---
+        async function refreshLiveData() {
+             if (!currentMatchId || !basicMatchDetails) return; // Need details (team names)
+
+             console.log("Refreshing live data...");
+             try {
+                 // Fetch Scores and Players in parallel
+                 const [scoresData, playersData] = await Promise.all([
+                    fetchScoreSummary(currentMatchId),
+                    fetchLivePlayers(currentMatchId) // This will return null/error if not live
+                 ]);
+                 // Update the dynamic parts of the UI
+                 updateDynamicUI(basicMatchDetails, scoresData, playersData);
+
+             } catch(error) {
+                 // Log refresh errors but don't necessarily stop the interval yet
+                 console.error("Error refreshing live data:", error);
+                 messageArea.textContent = `Warning: Could not refresh live data (${error.message})`;
+                 messageArea.classList.remove('text-danger');
+                 messageArea.classList.add('text-warning'); // Use warning color
+             }
+        }
+
+        // --- Helper: Fetch Basic Match Details ---
+                // --- Helper: Fetch Basic Match Details ---
+                async function fetchBasicMatchDetails(matchId) {
+            // --- Use the specified endpoint and method ---
+            const url = `${API_BASE_URL}/getmatch`; // Endpoint corrected
+            console.log(`Fetching basic details via POST from: ${url} with ID: ${matchId}`);
+            try {
+                const response = await fetch(url, {
+                    // --- Method is POST ---
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json' // Required header for JSON body
+                    },
+                    // --- Body contains match_id ---
+                    body: JSON.stringify({ match_id: matchId })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                     // Check for specific 404 if needed
+                     if (response.status === 404) {
+                         throw new Error(data.message || `Match with ID ${matchId} not found.`);
+                     }
+                    throw new Error(data.message || `Failed fetching basic details (HTTP ${response.status})`);
+                }
+
+                // Assuming response structure is { status: 'success', match: { ... } }
+                // ADJUST THIS if your /getmatch returns data differently
+                if (data.status === 'success' && data.match) {
+                    console.log("Basic details fetched:", data.match);
+                    return data.match;
+                } else {
+                    throw new Error(data.message || "Invalid basic details data format received.");
+                }
+            } catch (error) {
+                console.error("Failed to fetch basic match details:", error);
+                // Re-throw error to be caught by the calling function (loadInitialData)
+                throw error;
+            }
+        }
+
+        // --- Helper: Fetch Score Summary ---
+        async function fetchScoreSummary(matchId) {
+            const url = `${API_BASE_URL}/getscores`;
+            console.log(`Fetching scores from: ${url}`);
+             try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ match_id: matchId })
+                });
+                const data = await response.json();
+                console.log(data);
+                 // Handle 404 or logical errors gracefully (e.g., match just started, no score yet)
+                if (!response.ok && response.status !== 404) { throw new Error(data.message || `HTTP ${response.status}`); }
+                if (data.status === 'success' && data.scores) {
+                     console.log("Scores fetched:", data.scores);
+                    return data.scores;
+                } else if (response.status === 404 || (data.status !== 'success' && !data.scores)) {
+                     console.log("No scores found yet for match", matchId);
+                     return {}; // Return empty object if no scores found yet
+                }
+                 else {
+                     throw new Error(data.message || "Invalid score data received.");
+                 }
+            } catch (error) {
+                console.error("Failed to fetch scores:", error);
+                return null; // Indicate error
+            }
+        }
+
+        // --- Helper: Fetch Live Players ---
+        async function fetchLivePlayers(matchId) {
+            // Only fetch if match is potentially live
+             if (matchStatus !== 'live') {
+                 console.log("Match not live, skipping live player fetch.");
+                 return null;
+             }
+
+            const url = `${API_BASE_URL}/getcurrentscores`;
+            console.log(`Fetching live players from: ${url}`);
+             try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ match_id: matchId })
+                });
+                 const data = await response.json();
+                 console.log(data);
+                 // Allow 404 if players aren't set yet in a live match
+                 if (!response.ok && response.status !== 404) { throw new Error(data.message || `HTTP ${response.status}`); }
+
+                 if (data.status === 'success') {
+                     console.log("Live players fetched:", data.current_players);
+                     return data.data;
+                 } else {
+                     console.log("No live players currently set for match", matchId);
+                     return null; // Return null if no players set or 404
+                 }
+            } catch (error) {
+                console.error("Failed to fetch live players:", error);
+                return null; // Indicate error
+            }
+        }
+
+
+        // --- Update Static UI parts ---
+         function updateStaticUI(details) {
+             matchTitle.textContent = `${details.team_a || 'Team A'} vs ${details.team_b || 'Team B'}`;
+             matchVenue.textContent = details.location || 'N/A';
+             matchDate.textContent = details.match_date ? new Date(details.match_date).toLocaleString() : 'N/A';
+             teamAName.textContent = details.team_a || 'Team A';
+             teamBName.textContent = details.team_b || 'Team B';
+
+             // Status Badge & Text
+             matchResult.classList.add('hidden');
+             matchUpcoming.classList.add('hidden');
+             matchStatusBadge.className = 'badge';
+             matchStatusBadge.textContent = details.status ? details.status.toUpperCase() : 'UNKNOWN';
+
+             if (details.status === 'live') { matchStatusBadge.classList.add('bg-danger'); }
+             else if (details.status === 'completed') {
+                 matchStatusBadge.classList.add('bg-success');
+                 if (details.result) {
+                     matchResult.textContent = details.result;
+                     matchResult.classList.remove('hidden');
+                 }
+             } else if (details.status === 'upcoming') {
+                 matchStatusBadge.classList.add('bg-warning', 'text-dark');
+                 const startTime = new Date(details.match_date);
+                 const now = new Date();
+                 const diff = startTime - now;
+                 let startsInText = "Starts: " + startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                 if (diff > 0) {
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    startsInText = "Starts in";
+                    if (days > 0) startsInText += ` ${days}d`;
+                    if (hours > 0 || days > 0) startsInText += ` ${hours}h`;
+                    if (minutes > 0 && days === 0) startsInText += ` ${minutes}m`;
+                 } else { startsInText = "Starting Soon"; }
+                 matchUpcoming.textContent = startsInText;
+                 matchUpcoming.classList.remove('hidden');
+             } else { matchStatusBadge.classList.add('bg-secondary'); }
+         }
+
+        // --- Update Dynamic UI parts (Scores, Players) ---
+        function updateDynamicUI(details, scores, players) {
+             // Scores - Use team names from basic details to access score object
+             const teamAScoreData = scores?.[details.team_a] || scores?.[details.team_a_id] || { score: 0, wickets: 0, overs: 0.0 };
+             const teamBScoreData = scores?.[details.team_b] || scores?.[details.team_b_id] || { score: 0, wickets: 0, overs: 0.0 };
+
+             teamAScore.textContent = `${teamAScoreData.score}/${teamAScoreData.wickets ?? 0}`;
+             teamAOvers.textContent = `(${parseFloat(teamAScoreData.overs ?? 0).toFixed(1)})`;
+             teamBScore.textContent = `${teamBScoreData.score}/${teamBScoreData.wickets ?? 0}`;
+             teamBOvers.textContent = `(${parseFloat(teamBScoreData.overs ?? 0).toFixed(1)})`;
+
+             // Batting Indicator (Requires knowing which team is currently batting)
+             // This info might come from /getscores, /getcurrentplayers, or needs another small API call if not.
+             // Let's ASSUME /getcurrentplayers might implicitly tell us via bowler's team, or /getscores includes it.
+             // For now, we'll hide them as we don't have a definitive source from the current split structure.
+             // If your API provides current batting team ID, uncomment and adapt the logic below.
+             teamABattingIndicator.classList.add('hidden');
+             teamBBattingIndicator.classList.add('hidden');
+             /*
+             if (details.status === 'live' && currentBattingTeamId) { // Assuming currentBattingTeamId is available
+                 if (currentBattingTeamId === details.team_a_id || currentBattingTeamId === details.team_a_name) {
+                     teamABattingIndicator.classList.remove('hidden');
+                 } else if (currentBattingTeamId === details.team_b_id || currentBattingTeamId === details.team_b_name) {
+                      teamBBattingIndicator.classList.remove('hidden');
+                 }
+             }
+             */
+
+
+             // Live Players
+             if (details.status === 'live' && players) {
+                 currentStriker.textContent = players.striker.name || '--';
+                 currentNonStriker.textContent = players.non_striker.name || '--';
+                 currentBowler.textContent = players.bowler.name || '--';
+                 strikerscore.textContent = players.striker.runs_scored+' ('+players.striker.balls_faced+')';
+                 nonstrikerscore.textContent = players.non_striker.runs_scored+' ('+players.non_striker.balls_faced+')';
+                 bowlerscore.textContent = players.bowler.runs_conceded+' ('+players.bowler.overs_bowled+')';
+                 sr1.textContent = 'SR: '+((players.striker.runs_scored/players.striker.balls_faced)*100).toFixed(2);
+                 sr2.textContent = 'SR: '+((players.non_striker.runs_scored/players.non_striker.balls_faced)*100).toFixed(2);
+                 economy.textContent = 'EC: '+((players.bowler.runs_conceded/parseFloat(players.bowler.overs_bowled))).toFixed(2);
+                 livePlayersSection.classList.remove('hidden');
+             } else {
+                 // Hide if match not live OR players data is null/unavailable
+                 livePlayersSection.classList.add('hidden');
+                 currentStriker.textContent = '--';
+                 currentNonStriker.textContent = '--';
+                 currentBowler.textContent = '--';
+             }
+        }
+
+        // --- Setup Auto Refresh ---
+        function setupAutoRefresh(status) {
+             // Clear any existing interval
+             if (refreshInterval) {
+                 clearInterval(refreshInterval);
+                 refreshInterval = null;
+             }
+             // Setup new interval if live
+             if (status === 'live') {
+                 console.log("Match is live, starting auto-refresh.");
+                 refreshInterval = setInterval(refreshLiveData, 5000); // Refresh dynamic data every 15 seconds
+             } else {
+                 console.log("Match is not live, auto-refresh disabled.");
+             }
+        }
+
+        // --- Show Error ---
+        function showError(message) {
+            loadingIndicator.classList.add('hidden');
+            scoreContent.classList.add('hidden'); // Hide content on error too
+            messageArea.textContent = message;
+            messageArea.className = 'text-danger text-center'; // Ensure style
+             // Stop refresh on error
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+            }
+        }
+
+        // --- Cleanup interval on page unload ---
+        window.addEventListener('beforeunload', () => {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+
+    </script>
+
+</body>
+</html>

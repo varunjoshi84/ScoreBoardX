@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Manage Matches - ScoreboardX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <style>
+    body {
+      background-color: #121212;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+    }
+
+    .sidebar {
+      height: 100vh;
+      background-color: #1f1f1f;
+      padding-top: 2rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 250px;
+      border-right: 1px solid #333;
+    }
+
+    .sidebar h4 {
+      font-weight: bold;
+      color: #4dabf7;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .sidebar a {
+      color: #aaa;
+      text-decoration: none;
+      display: block;
+      padding: 1rem 2rem;
+      transition: background-color 0.2s ease;
+    }
+
+    .sidebar a:hover, .sidebar a.active {
+      background-color: #333;
+      color: #4dabf7;
+    }
+
+    .main-content {
+      margin-left: 250px;
+      padding: 2rem;
+    }
+
+    .card {
+      background-color: #1f1f1f;
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+
+    th, td {
+      vertical-align: middle;
+    }
+
+    .btn-edit {
+      background-color: #4dabf7;
+      color: #fff;
+    }
+
+    .btn-delete {
+      background-color: rgb(255, 64, 64);
+      color: #fff;
+    }
+
+    .btn-add {
+      font-weight: bold;
+      background-color: #31a6ff;
+      color: #fff;
+      margin-bottom: 1rem;
+      display: inline-block; /* To align with other buttons if needed */
+    }
+
+    .btn-set-playing11 {
+      width: 8vw;
+      font-weight: bold;
+      background-color: #ffc107; /* Yellow/Amber color for attention */
+      color: #212529; /* Dark text for contrast */
+    }
+    .btn-set-completed {
+      font-weight: bold;
+      width: 8vw;
+      margin-left: 0.5rem;
+      background-color: #32cb56; /* Yellow/Amber color for attention */
+      color: #000000; /* Dark text for contrast */
+    }
+
+    .btn-update-score {
+      background-color: #007bff; /* Blue color for update */
+      width: 8vw;
+      color: #fff;
+      margin-left: 0.5rem;
+      font-weight: bold;
+    }
+    .btn-yet-to-start {
+      background-color: #fb5252; /* Blue color for update */
+      width: 8vw;
+      color: #fff;
+      margin-left: 0.5rem;
+      font-weight: bold;
+    }
+
+    #nonAdminContent {
+      color: #ffc107;
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 1.2rem;
+      display: none; /* Initially hidden */
+    }
+    h5{
+      color: #ff6868;
+      font-weight: bold;
+      margin-top: 1vh;
+    }
+    h6{
+      color: #12fb49;
+      font-weight: bold;
+      margin-top: 1vh;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+        z-index: 1000; /* Ensure it's above other content if it becomes non-fixed */
+      }
+
+      .main-content {
+        margin-left: 0;
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h4>Admin Panel</h4>
+    <a href="/admin/dashboard"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a>
+    <a href="/admin/matches" class="active"><i class="fas fa-futbol me-2"></i>Manage Matches</a>
+    <a href="/admin/users"><i class="fas fa-users me-2"></i>Users</a>
+    <a href="/admin/settings"><i class="fas fa-cog me-2"></i>Settings</a>
+  </div>
+
+  <div class="main-content" id="mainContent">
+    <h2 class="mb-4">Manage Matches</h2>
+    <div class="mb-3">
+      <a href="/admin/matches/new"><button class="btn btn-add">Add New Match</button></a>
+    </div>
+    <div class="card p-4">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover table-bordered text-center">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Team A</th>
+              <th>Team B</th>
+              <th>Date</th>
+              <th>Venue</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="matchTableBody">
+            <tr><td colspan="7">Loading matches...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content" id="nonAdminContent">
+    <div class="container mt-4">
+      <h2>Access Denied</h2>
+      <p id="nonAdminMessage">You do not have administrator privileges to view this page. You will be redirected shortly.</p>
+    </div>
+  </div>
+
+  <script>
+    const mainContent = document.getElementById('mainContent');
+    const nonAdminContent = document.getElementById('nonAdminContent');
+    const matchTableBody = document.getElementById('matchTableBody');
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    }
+
+    async function fetchUserData() {
+      const token = getCookie('token');
+      if (!token) {
+        console.error('Token not found in cookies.');
+        redirectToHome();
+        return null;
+      }
+
+      try {
+        const response = await fetch('http://localhost/SportsApp/api/users/me', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token: token }),
+        });
+
+        if (!response.ok) {
+          console.error(`Failed to fetch user data: ${response.status}`);
+          redirectToHome();
+          return null;
+        }
+
+        const data = await response.json();
+        console.log(data);
+        return data.User;
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        redirectToHome();
+        return null;
+      }
+    }
+
+    function redirectToHome() {
+      mainContent.style.display = 'none';
+      nonAdminContent.style.display = 'block';
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 500); 
+    }
+
+    async function checkAdminRole() {
+      const userData = await fetchUserData();
+      if (!userData || userData.role !== 'admin') {
+        redirectToHome();
+      } else {
+        mainContent.style.display = 'block';
+        nonAdminContent.style.display = 'none';
+        fetchMatches();
+      }
+    }
+
+    async function fetchMatches() {
+      const token = getCookie('token');
+      if (!token) {
+        alert('Authentication token not found. Please log in again.');
+        window.location.href = '/login';
+        return;
+      }
+
+      try {
+        const response = await fetch('http://localhost/SportsApp/api/getmatches', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            alert('Unauthorized access. Please log in as an administrator.');
+            window.location.href = '/login';
+          } else {
+            throw new Error('Failed to fetch matches');
+          }
+          return;
+        }
+
+        const data = await response.json();
+        matchTableBody.innerHTML = '';
+
+        data.matches.forEach((match, index) => {
+          let actions = `
+            <h5 class="btn btn-sm btn-yet-to-start">Yet to Start</h5>
+          `;
+
+          if (match.playing11_status === 'not_set') {
+            actions = `
+              <a href="/admin/matches/${match.id}/playing11" class="btn btn-sm btn-set-playing11 ms-2">Set Playing 11</a>
+            `;
+          }
+
+          if (match.status === 'live' && match.playing11_status === 'set') {
+            actions = `
+              <a href="/admin/matches/${match.id}/score" class="btn btn-sm btn-update-score ms-2">Update Score</a>
+            `;
+          }
+          if (match.status === 'completed') {
+            actions = `
+              <h6 class="btn btn-sm btn-set-completed">Completed</h6>
+            `;
+          }
+
+          const row = `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${match.team_a}</td>
+              <td>${match.team_b}</td>
+              <td>${match.match_date}</td>
+              <td>${match.location}</td>
+              <td>${match.status}</td>
+              <td>
+                ${actions}
+              </td>
+            </tr>
+          `;
+          matchTableBody.innerHTML += row;
+        });
+      } catch (err) {
+        console.error(err);
+        matchTableBody.innerHTML = '<tr><td colspan="7">Error loading matches.</td></tr>';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', checkAdminRole);
+  </script>
+</body>
+</html>
